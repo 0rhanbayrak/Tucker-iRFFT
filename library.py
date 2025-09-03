@@ -17,7 +17,7 @@ def load_images(folder, size=(128,128)):
             img_path = os.path.join(folder, filename)
             img = Image.open(img_path).convert("RGB")
             data_list.append(transform(img))
-    X = torch.stack(data_list)
+    X = torch.stack(data_list).to(torch.float64)
     X_formatted = X.permute(2,3,1,0)
     return X_formatted
 
@@ -35,19 +35,21 @@ def rfft_visualize(X_formatted, img_index=0):
 
 # 3) Spatial Tucker
 def tucker_spatial(X_formatted, H_rank=10, W_rank=10, sample_rank=20):
-    tl.set_backend('numpy')
+    tl.set_backend('pytorch')
+    print(X_formatted.numel() * X_formatted.element_size() / 1024)
     H, W, C, N = X_formatted.shape
-    X_np = X_formatted.cpu().numpy()
+    #X_np = X_formatted.copy()
     if sample_rank is None: sample_rank = min(N, sample_rank)
     ranks = [min(H_rank,H), min(W_rank,W), C, sample_rank]
-    core, fac = tucker(X_np, rank=ranks,tol=1e-12)
+    core, fac = tucker(X_formatted, rank=ranks,tol=1e-12)
     X_rec = tl.tucker_to_tensor((core, fac))
     X_rec = np.clip(X_rec, 0.0, 1.0)
-    return X_np, X_rec
+    return X_formatted, X_rec
 
 def tucker_fft_reconstruct(X_formatted, H_rank=10, W_rank=10, sample_rank=20):
     H,W,C,N = X_formatted.shape
-    X_fft3 = torch.fft.rfftn(X_formatted, dim=(0,1,2), norm='ortho')
+    X_fft3 = torch.fft.rfftn(X_formatted, dim=(0,1,2), norm='ortho').to(torch.complex64)
+    print(X_fft3.numel() * X_fft3.element_size() / 1024)
     print(X_fft3.shape)
     _, _, X_hat, errs = tucker_hooi_4d(X_fft3, ranks=[H_rank,W_rank,2,sample_rank])
     X_restored = torch.fft.irfftn(X_hat, s=(H,W,C), dim=(0,1,2), norm='ortho').real
