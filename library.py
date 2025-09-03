@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorly as tl
 from tensorly.decomposition import tucker
+from typing import Tuple, List
 
 # 1) Load data
 def load_images(folder, size=(128,128)):
@@ -33,36 +34,46 @@ def rfft_visualize(X_formatted, img_index=0):
     #return fft_magnitude
 
 # 3) Spatial Tucker
-def tucker_spatial(X_formatted, H_rank=60, W_rank=60, sample_rank=None):
+def tucker_spatial(X_formatted, H_rank=10, W_rank=10, sample_rank=20):
     tl.set_backend('numpy')
     H, W, C, N = X_formatted.shape
     X_np = X_formatted.cpu().numpy()
-    if sample_rank is None: sample_rank = min(N, 200)
+    if sample_rank is None: sample_rank = min(N, sample_rank)
     ranks = [min(H_rank,H), min(W_rank,W), C, sample_rank]
-    core, fac = tucker(X_np, rank=ranks)
+    core, fac = tucker(X_np, rank=ranks,tol=1e-12)
     X_rec = tl.tucker_to_tensor((core, fac))
     X_rec = np.clip(X_rec, 0.0, 1.0)
     return X_np, X_rec
 
-# 4) 3D FFT → Tucker → iFFT
-def tucker_fft_reconstruct(X_formatted, H_rank=60, W_rank=60, sample_rank=None):
-    tl.set_backend("numpy")
-    H, W, C, N = X_formatted.shape
+def tucker_fft_reconstruct(X_formatted, H_rank=10, W_rank=10, sample_rank=20):
+    H,W,C,N = X_formatted.shape
     X_fft3 = torch.fft.rfftn(X_formatted, dim=(0,1,2), norm='ortho')
-    H3, W3, Cf, N3 = X_fft3.shape
-    R = X_fft3.real.cpu().numpy()
-    I = X_fft3.imag.cpu().numpy()
-    Z = np.stack([R, I], axis=3)
-    if sample_rank is None: sample_rank = min(N, 200)
-    ranks_fft = [min(H_rank,H3), min(W_rank,W3), Cf, 2, sample_rank]
-    core_f, fac_f = tucker(Z, rank=ranks_fft)
-    Z_hat = tl.tucker_to_tensor((core_f, fac_f))
-    R_hat = Z_hat[:,:,:,0,:]
-    I_hat = Z_hat[:,:,:,1,:]
-    X_fft3_hat = torch.complex(torch.from_numpy(R_hat), torch.from_numpy(I_hat))
-    X_restored = torch.fft.irfftn(X_fft3_hat, s=(H,W,C), dim=(0,1,2), norm='ortho').real
+    print(X_fft3.shape)
+    _, _, X_hat, errs = tucker_hooi_4d(X_fft3, ranks=[H_rank,W_rank,2,sample_rank])
+    X_restored = torch.fft.irfftn(X_hat, s=(H,W,C), dim=(0,1,2), norm='ortho').real
     X_restored_np = np.clip(X_restored.cpu().numpy(), 0.0, 1.0)
     return X_restored_np
+    
+
+# # 4) 3D FFT → Tucker → iFFT
+# def tucker_fft_reconstruct(X_formatted, H_rank=60, W_rank=60, sample_rank=None):
+#     tl.set_backend("numpy")
+#     H, W, C, N = X_formatted.shape
+#     X_fft3 = torch.fft.rfftn(X_formatted, dim=(0,1,2), norm='ortho')
+#     H3, W3, Cf, N3 = X_fft3.shape
+#     R = X_fft3.real.cpu().numpy()
+#     I = X_fft3.imag.cpu().numpy()
+#     Z = np.stack([R, I], axis=3)
+#     if sample_rank is None: sample_rank = min(N, 200)
+#     ranks_fft = [min(H_rank,H3), min(W_rank,W3), Cf, sample_rank]
+#     core_f, fac_f = tucker(X_fft3, rank=ranks_fft)
+#     Z_hat = tl.tucker_to_tensor((core_f, fac_f))
+#     R_hat = Z_hat[:,:,:,0,:]
+#     I_hat = Z_hat[:,:,:,1,:]
+#     X_fft3_hat = torch.complex(torch.from_numpy(R_hat), torch.from_numpy(I_hat))
+#     X_restored = torch.fft.irfftn(X_fft3_hat, s=(H,W,C), dim=(0,1,2), norm='ortho').real
+#     X_restored_np = np.clip(X_restored.cpu().numpy(), 0.0, 1.0)
+#     return X_restored_np
 
 # 5) Metrics
 def metrics(orig, rec):
@@ -82,8 +93,8 @@ def plot_tucker_fft_grid(X_np, X_rec_spatial, X_restored_np, img_index,
     rec_s = X_spat[:, :, :, img_index]
     rec_f = X_freq[:, :, :, img_index]
 
-    rel_err_spatial = 1-(np.linalg.norm(orig - rec_s) / np.linalg.norm(orig))**2
-    rel_err_fft = 1-(np.linalg.norm(orig - rec_f) / np.linalg.norm(orig))**2
+    rel_err_spatial = 1-(np.linalg.norm(orig - rec_s)**2 / np.linalg.norm(orig)**2)
+    rel_err_fft = 1-(np.linalg.norm(orig - rec_f)**2 / np.linalg.norm(orig)**2)
 
     err_s = np.abs(orig - rec_s).mean(axis=2)
     err_f = np.abs(orig - rec_f).mean(axis=2)
@@ -122,4 +133,116 @@ def plot_tucker_fft_grid(X_np, X_rec_spatial, X_restored_np, img_index,
     cbar.set_label('abs error (mean over channels)', fontsize=font-1)
     plt.tight_layout(pad=0.6)
     plt.show()
+    return rel_err_spatial, rel_err_fft
+
+
+def unfold(X: torch.Tensor, mode: int) -> torch.Tensor:
+    """Mode-n matricization: (I_n) x (prod_{m!=n} I_m)."""
+    N = X.ndim
+    perm = (mode,) + tuple(i for i in range(N) if i != mode)
+    Xp = X.permute(perm)
+    return Xp.reshape(X.shape[mode], -1)
+
+def n_mode_product(X: torch.Tensor, U: torch.Tensor, mode: int, left_adj: bool=False) -> torch.Tensor:
+    """
+    Compute Y = X ×_mode U     (if left_adj=False), where U shape is (J, I_mode)
+            or Y = X ×_mode Uᴴ (if left_adj=True),  where U shape is (I_mode, J)
+    This routine uses Hermitian when left_adj=True via .mH.
+    """
+    N = X.ndim
+    perm = (mode,) + tuple(i for i in range(N) if i != mode)
+    Xp = X.permute(perm).reshape(X.shape[mode], -1)  # (I_mode, rest)
+    if left_adj:
+        # Left-multiply by Uᴴ:   (J, I_mode) <- Uᴴ has shape (J, I_mode)
+        Ymat = (U.mH) @ Xp  # (J, rest)
+        new_dim0 = U.shape[1]  # J when U is (I_mode, J)
+    else:
+        # Left-multiply by U:    (J, I_mode) <- U has shape (J, I_mode)
+        Ymat = U @ Xp          # (J, rest)
+        new_dim0 = U.shape[0]
+    new_shape = (new_dim0,) + tuple(X.shape[i] for i in range(N) if i != mode)
+    Yp = Ymat.reshape(new_shape)
+    # invert the permutation
+    inv = [perm.index(i) for i in range(N)]
+    return Yp.permute(inv)
+
+def multi_mode_left_adj(X: torch.Tensor, factors: List[torch.Tensor], skip: int) -> torch.Tensor:
+    """
+    Y = X ×_{m≠skip} U_mᴴ    (i.e., left-adjoint by all factors except 'skip').
+    After this, mode 'skip' keeps its original size; all other modes become R_m.
+    """
+    Y = X
+    for m, U in enumerate(factors):
+        if m == skip:
+            continue
+        Y = n_mode_product(Y, U, mode=m, left_adj=True)
+    return Y
+
+def tucker_hooi_4d(
+    X: torch.Tensor,
+    ranks: Tuple[int, int, int, int],
+    n_iter_max: int = 50,
+    tol: float = 1e-12,
+    verbose: bool = True,
+):
+    """
+    HOOI (ALS) Tucker decomposition for a 4th-order tensor X (I1 x I2 x I3 x I4).
+    Supports complex dtypes and uses Hermitian adjoints correctly.
+
+    Returns: (factors, core, recon, errors)
+      - factors: [U1, U2, U3, U4] with shapes (I_n x R_n)
+      - core: G of shape (R1 x R2 x R3 x R4)
+      - recon: reconstruction of X
+      - errors: list of relative reconstruction errors per iteration
+    """
+    assert X.ndim == 4, "This implementation expects a 4th-order tensor."
+    device, dtype = X.device, X.dtype
+    I1, I2, I3, I4 = X.shape
+    R1, R2, R3, R4 = ranks
+    R1, R2, R3, R4 = min(R1, I1), min(R2, I2), min(R3, I3), min(R4, I4)
+    ranks = (R1, R2, R3, R4)
+
+    # --- HOSVD init: leading left singular vectors per unfolding ---
+    Us: List[torch.Tensor] = []
+    for n, (In, Rn) in enumerate(zip(X.shape, ranks)):
+        Xn = unfold(X, n)  # (In x prod others)
+        # SVD works for real or complex dtypes
+        Un, _, _ = torch.linalg.svd(Xn, full_matrices=False)
+        Us.append(Un[:, :Rn].to(device=device, dtype=dtype))
+
+    # --- ALS (HOOI) ---
+    normX = torch.linalg.norm(X)
+    prev_err = float('inf')
+    errors: List[float] = []
+
+    for it in range(n_iter_max):
+        for n in range(4):
+            # Project X by U_mᴴ for all m ≠ n, then SVD on mode-n unfolding
+            Yn = multi_mode_left_adj(X, Us, skip=n)
+            Yn_mat = unfold(Yn, n)  # shape: (I_n x prod_{m≠n} R_m)
+            Un, _, _ = torch.linalg.svd(Yn_mat, full_matrices=False)
+            Us[n] = Un[:, :ranks[n]].to(device=device, dtype=dtype)
+
+        # Compute core with Hermitian adjoints of all factors
+        G = X
+        for n in range(4):
+            G = n_mode_product(G, Us[n], mode=n, left_adj=True)
+
+        # Reconstruct
+        Xhat = G
+        for n in range(4):
+            Xhat = n_mode_product(Xhat, Us[n], mode=n, left_adj=False)
+
+        err = (torch.linalg.norm(X - Xhat) / (normX + 1e-12)).item()
+        errors.append(err)
+        if verbose:
+            print(f"Iter {it+1:02d} | rel. error = {err:.6e}")
+        if abs(prev_err - err) < tol:
+            break
+        prev_err = err
+
+    return Us, G, Xhat, errors
+
+
+
 
