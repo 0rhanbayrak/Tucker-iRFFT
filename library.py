@@ -34,7 +34,7 @@ def rfft_visualize(X_formatted, img_index=0):
     #return fft_magnitude
 
 # 3) Spatial Tucker
-def tucker_spatial(X_formatted, H_rank=10, W_rank=10, sample_rank=20):
+def tucker_spatial(X_formatted, H_rank=20, W_rank=20, sample_rank=200):
     tl.set_backend('pytorch')
     print(X_formatted.numel() * X_formatted.element_size() / 1024)
     H, W, C, N = X_formatted.shape
@@ -46,14 +46,17 @@ def tucker_spatial(X_formatted, H_rank=10, W_rank=10, sample_rank=20):
     X_rec = np.clip(X_rec, 0.0, 1.0)
     return X_formatted, X_rec
 
-def tucker_fft_reconstruct(X_formatted, H_rank=10, W_rank=10, sample_rank=20):
+def tucker_fft_reconstruct(X_formatted, H_rank=20, W_rank=20, sample_rank=200):
     H,W,C,N = X_formatted.shape
-    X_fft3 = torch.fft.rfftn(X_formatted, dim=(0,1,2), norm='ortho').to(torch.complex64)
+    X_fft3 = torch.fft.rfftn(X_formatted, dim=(0,1), norm='ortho').to(torch.complex64)
     print(X_fft3.numel() * X_fft3.element_size() / 1024)
     print(X_fft3.shape)
-    _, _, X_hat, errs = tucker_hooi_4d(X_fft3, ranks=[H_rank,W_rank,2,sample_rank])
-    X_restored = torch.fft.irfftn(X_hat, s=(H,W,C), dim=(0,1,2), norm='ortho').real
+    Us, G, X_hat, errs = tucker_hooi_4d(X_fft3, ranks=[H_rank,W_rank,3,sample_rank])
+    print(sum(t.element_size() * t.numel() for t in Us) / 1024 + G.element_size()*G.numel() / 1024)
+
+    X_restored = torch.fft.irfftn(X_hat, dim=(0,1), norm='ortho').real
     X_restored_np = np.clip(X_restored.cpu().numpy(), 0.0, 1.0)
+    
     return X_restored_np
     
 
