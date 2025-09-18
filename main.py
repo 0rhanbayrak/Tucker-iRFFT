@@ -50,6 +50,8 @@ plt.title("Difference between arrays A and B")
 plt.legend()
 plt.grid(True, which="both", ls="--", linewidth=0.5)    
 
+
+"""""""""""
 #PLS
 
 # Design Matrix
@@ -105,3 +107,4 @@ plt.grid(True)
 
 plt.tight_layout()
 plt.show()
+"""""""""""

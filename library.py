@@ -31,7 +31,6 @@ def rfft_visualize(X_formatted, img_index=0):
     plt.title(f"3D RFFT (Real Part) - Image #{img_index+1}")
     plt.axis('off')
     plt.show()
-    #return fft_magnitude
 
 # 3) Spatial Tucker
 def tucker_spatial(X_formatted, H_rank=20, W_rank=20, sample_rank=200):
@@ -59,28 +58,7 @@ def tucker_fft_reconstruct(X_formatted, H_rank=20, W_rank=20, sample_rank=200):
     
     return X_restored_np
     
-
-# # 4) 3D FFT → Tucker → iFFT
-# def tucker_fft_reconstruct(X_formatted, H_rank=60, W_rank=60, sample_rank=None):
-#     tl.set_backend("numpy")
-#     H, W, C, N = X_formatted.shape
-#     X_fft3 = torch.fft.rfftn(X_formatted, dim=(0,1,2), norm='ortho')
-#     H3, W3, Cf, N3 = X_fft3.shape
-#     R = X_fft3.real.cpu().numpy()
-#     I = X_fft3.imag.cpu().numpy()
-#     Z = np.stack([R, I], axis=3)
-#     if sample_rank is None: sample_rank = min(N, 200)
-#     ranks_fft = [min(H_rank,H3), min(W_rank,W3), Cf, sample_rank]
-#     core_f, fac_f = tucker(X_fft3, rank=ranks_fft)
-#     Z_hat = tl.tucker_to_tensor((core_f, fac_f))
-#     R_hat = Z_hat[:,:,:,0,:]
-#     I_hat = Z_hat[:,:,:,1,:]
-#     X_fft3_hat = torch.complex(torch.from_numpy(R_hat), torch.from_numpy(I_hat))
-#     X_restored = torch.fft.irfftn(X_fft3_hat, s=(H,W,C), dim=(0,1,2), norm='ortho').real
-#     X_restored_np = np.clip(X_restored.cpu().numpy(), 0.0, 1.0)
-#     return X_restored_np
-
-# 5) Metrics
+# 4) Metrics
 def metrics(orig, rec):
     diff = orig - rec
     mse = float(np.mean(diff**2))
@@ -88,7 +66,7 @@ def metrics(orig, rec):
     mind = float(np.min(np.abs(diff)))
     return mse, maxd, mind
 
-# 6) Grid visualization
+# 5) Grid visualization
 def plot_tucker_fft_grid(X_np, X_rec_spatial, X_restored_np, img_index,
                          width=8, height=5.5, dpi=140, font=8, interp='bilinear'):
     X_orig = np.clip(X_np, 0.0, 1.0)
@@ -247,7 +225,3 @@ def tucker_hooi_4d(
         prev_err = err
 
     return Us, G, Xhat, errors
-
-
-
-
