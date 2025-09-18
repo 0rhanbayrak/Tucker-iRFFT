@@ -14,10 +14,7 @@ Two approaches are compared:
 ## ⚡ Key Features
 - 📉 **100x compression** (100 MB → ~1 MB).  
 - 🎯 **Over 99% reconstruction accuracy**.  
-- ⚙️ **GPU-accelerated** computations with PyTorch.  
 - 🧩 Attempted **UMAP & SOM clustering** for dataset cleaning.  
-- ☁️ Built a **JupyterHub server** with GPU passthrough.  
-
 ---
 
 ## 📊 Results
