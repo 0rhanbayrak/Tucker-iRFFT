@@ -20,10 +20,15 @@
  
 📊 Memory Size Comparison
   During the project, we tracked how the dataset size evolved through each step of the pipeline.
+  
  -Original dataset	~342 MB	Raw images loaded into memory as float64 tensors
+ 
  -After RFFT (FFT applied)	~173 MB	Real FFT stores only half of the spectrum due to symmetry → reduces memory usage
+ 
  -After Tucker Decomposition	~3.3 MB	Core tensor + factor matrices (ranks selected), main compression effect
+ 
 👉 From ~342 MB down to ~3.3 MB, achieving almost 100x compression while still preserving over 99% reconstruction accuracy.
+
 
 📊 Results
 
