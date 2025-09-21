@@ -24,6 +24,7 @@
  -After RFFT (FFT applied)	~173 MB	Real FFT stores only half of the spectrum due to symmetry → reduces memory usage
  -After Tucker Decomposition	~3.3 MB	Core tensor + factor matrices (ranks selected), main compression effect
 
+
 👉 From ~342 MB down to ~3.3 MB, achieving almost 100x compression while still preserving over 99% reconstruction accuracy.
 
 📊 Results
