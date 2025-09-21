@@ -4,7 +4,7 @@
 
  -Spatial Tucker Decomposition
 
- -FFT-Tucker Decomposition (Fast Fourier Transform + Tucker)
+ -"FFT-Tucker" Decomposition (Fast Fourier Transform + Tucker)
 
 🚀 Key Highlights
 
