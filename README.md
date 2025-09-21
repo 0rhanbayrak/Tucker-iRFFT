@@ -28,9 +28,6 @@
  
  -After Tucker Decomposition	~3.3 MB	Core tensor + factor matrices (ranks selected), main compression effect
  
-👉 From ~342 MB down to ~3.3 MB, achieving almost 100x compression while still preserving over 99% reconstruction accuracy.
-
-
 📊 Results
 
  -Achieved 100x image compression.
