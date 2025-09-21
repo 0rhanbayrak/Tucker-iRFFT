@@ -48,7 +48,7 @@
 
 🙏 Acknowledgements
 
- -This work was supervised by Prof. Michael Sorochan Armstrong, with contributions from Jesús García Sánchez, Daniel Vallejo España, and José Camacho Páez.
+ -This work was supervised by Prof. Michael Sorochan Armstrong, with contributions from José Camacho Páez.
 
  -Project supported by:
 
