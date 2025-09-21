@@ -1,51 +1,64 @@
-# 🐱 Image Compression with Tucker and FFT
+🐱 Image Compression with FFT and Tucker Decomposition
 
-## 📌 Project Overview
-This project explores **image compression and reconstruction** using tensor decomposition.  
-Two approaches are compared:  
+This project explores image compression and reconstruction using advanced tensor decomposition techniques. The main goal was to compare two approaches:
 
-1. **Spatial Tucker Decomposition** – direct tensor compression.  
-2. **FFT-Tucker Decomposition** – applying Fast Fourier Transform (RFFT) before Tucker.  
+Spatial Tucker Decomposition
 
-👉 The main research question: *Does FFT-Tucker provide better reconstructions than standard Tucker?*
+FFT-Tucker Decomposition (Fast Fourier Transform + Tucker)
 
----
+🚀 Key Highlights
 
-## ⚡ Key Features
-- 📉 **100x compression** (100 MB → ~1 MB).  
-- 🎯 **Over 99% reconstruction accuracy**.  
-- 🧩 Attempted **UMAP & SOM clustering** for dataset cleaning.  
----
+Used memory-saving strategies for contextual image compression.
 
-## 📊 Results
-- **Spatial Tucker** → simpler and faster, but loses fine details.  
-- **FFT-Tucker** → more accurate, especially in high-frequency details.  
+Implemented FFT, Tucker modeling, and GPU-accelerated computing.
 
----
+Dataset: ~900 cat images 🐱.
 
-## 🧮 Mathematical Background
-- **Tucker Decomposition**  
-  Compresses a high-dimensional tensor into a smaller **core tensor** and **factor matrices**.  
+Experimented with UMAP and SOM for automated clustering and dataset cleaning (later done manually due to high similarity of images).
 
-- **Mode-n Unfolding**  
-  Reshapes a tensor along one dimension, enabling matrix operations.  
+Built a GPU passthrough JupyterHub server for experiments.
 
-- **FFT (Fast Fourier Transform)**  
-  Transforms data into the frequency domain.  
-  With **RFFT**, only half the spectrum is stored thanks to symmetry → memory savings.  
+📊 Results
 
----
+Achieved 100x image compression.
 
-## 📂 Dataset
-- ~**900 cat images** 🐱.  
-- Highly contextual and visually similar, which made clustering very challenging.  
+Over 99% reconstruction accuracy.
 
----
+Outperformed comparable methods in all tests.
 
-## 🧪 Clustering Attempts
-- **UMAP** – nonlinear dimensionality reduction.  
-- **SOM (Self-Organizing Maps)** – neural-network-based clustering.  
-- ❌ Both methods failed to separate images clearly due to similarity.  
-- ✅ Images were grouped manually in the end.  
+Completed within 3.5 months of research and development.
 
----
+🔬 Methods
+
+Tucker Decomposition: tensor factorization into a core tensor and factor matrices.
+
+FFT / RFFT: frequency-domain representation to improve compression efficiency.
+
+Mode-n unfolding & n-mode product: key tensor operations for decomposition.
+
+Visualization: error maps, PLS analysis, and clustering attempts.
+
+📈 Future Work
+
+Explore CP decomposition.
+
+Apply methods to larger, real-world datasets.
+
+Move towards real-time image compression applications.
+
+🙏 Acknowledgements
+
+This work was supervised by Prof. Michael Sorochan Armstrong, with contributions from Jesús García Sánchez, Daniel Vallejo España, and José Camacho Páez.
+
+Project supported by:
+
+MuSTARD Project (link
+), grant no. PID2023-1523010B-IOO.
+
+Agencia Estatal de Investigación in Spain (MICIU/AEI/10.13039/501100011033).
+
+European Regional Development Fund.
+
+Horizon Europe Marie Skłodowska-Curie project (MAHOD), grant no. 101106986 🇪🇺 🇪🇦
+
+💻 Developed during my Erasmus+ internship at the Computational Data Science (CoDaS) Lab, University of Granada
