@@ -1,8 +1,8 @@
-from library import load_images,rfft_visualize,tucker_spatial,tucker_fft_reconstruct,plot_tucker_fft_grid
+from library import load_images,rfft_visualize,tucker_spatial,tucker_fft_reconstruct,plot_tucker_fft_grid,sizes
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cross_decomposition import PLSRegression
-folder=r"C:\Users\Orhan Bayrak\Pictures\cat_data" #Path of the folder
+folder=r"C:\Users\Orhan Bayrak\Desktop\Tucker-FFT\cat_data" #Path of the folder
 data=load_images(folder) 
 
 #Applying 3D-RFFT and visualization of the real part.
@@ -14,7 +14,7 @@ rfft_real=rfft_visualize(data)
 tucker=tucker_spatial(data)
 
 #Applying iFFT reconstruction 
-tucker_fft=tucker_fft_reconstruct(data)
+tucker_fft, X_fft3, Us, G = tucker_fft_reconstruct(data)
 
 #Grid visualization
 X_np, X_rec_spatial = tucker          
@@ -50,6 +50,7 @@ plt.title("Difference between arrays A and B")
 plt.legend()
 plt.grid(True, which="both", ls="--", linewidth=0.5)    
 
+sizes(data, X_fft3, Us, G)
 
 """""""""""
 #PLS

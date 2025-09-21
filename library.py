@@ -20,6 +20,7 @@ def load_images(folder, size=(128,128)):
     X = torch.stack(data_list).to(torch.float64)
     X_formatted = X.permute(2,3,1,0)
     return X_formatted
+    
 
 # 2) 3D RFFT and visualization
 def rfft_visualize(X_formatted, img_index=0):
@@ -32,7 +33,7 @@ def rfft_visualize(X_formatted, img_index=0):
     plt.axis('off')
     plt.show()
 
-# 3) Spatial Tucker
+# 3) Spatial & FFT Tucker
 def tucker_spatial(X_formatted, H_rank=20, W_rank=20, sample_rank=200):
     tl.set_backend('pytorch')
     print(X_formatted.numel() * X_formatted.element_size() / 1024)
@@ -56,7 +57,7 @@ def tucker_fft_reconstruct(X_formatted, H_rank=20, W_rank=20, sample_rank=200):
     X_restored = torch.fft.irfftn(X_hat, dim=(0,1), norm='ortho').real
     X_restored_np = np.clip(X_restored.cpu().numpy(), 0.0, 1.0)
     
-    return X_restored_np
+    return X_restored_np, X_fft3, Us, G
     
 # 4) Metrics
 def metrics(orig, rec):
@@ -224,4 +225,13 @@ def tucker_hooi_4d(
             break
         prev_err = err
 
-    return Us, G, Xhat, errors
+    return Us, G, Xhat, errors 
+
+def sizes(X_formatted, X_fft3, Us, G):
+    original=(X_formatted.numel() * X_formatted.element_size() / 1024)
+    after_fft_tucker=(X_fft3.numel() * X_fft3.element_size() / 1024)
+    after_decomposition=sum(t.element_size() * t.numel() for t in Us) / 1024 + G.element_size()*G.numel() / 1024
+    print("**************VERSION SIZE COMPARISIONS**************")
+    print(original)
+    print(after_fft_tucker)
+    print(after_decomposition)
