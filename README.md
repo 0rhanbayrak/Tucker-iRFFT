@@ -17,6 +17,7 @@
  -Experimented with UMAP and SOM for automated clustering and dataset cleaning (later done manually due to high similarity of images).
 
  -Built a GPU passthrough JupyterHub server for experiments.
+ 
 📊 Memory Size Comparison
   During the project, we tracked how the dataset size evolved through each step of the pipeline.
  -Original dataset	~342 MB	Raw images loaded into memory as float64 tensors
